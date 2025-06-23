@@ -4,28 +4,17 @@ import express from "express";
 import cors from "cors"
 import mongoose from 'mongoose';
 import { User } from './module/user.js';
+import {connectDB} from './DB.js';
 
 const app = express();
 
 app.use(express.json());
-app.use(cors())
-
-async function main() {
-    // await mongoose.connect('mongodb://127.0.0.1:27017/New_API');
-    await mongoose.connect(process.env.DATABASE_URL, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    });
-
-}
-
-main().then(() => console.log("connected to the database"))
-    .catch((err) => console.log(err));
-
+app.use(cors());
 
 
 // to add user data
 app.post("/api/user", async (req, res) => {
+    await connectDB()
     try {
         const { name, email, password } = req.body;
 
@@ -44,6 +33,7 @@ app.post("/api/user", async (req, res) => {
 
 // get user data
 app.get("/api/user/:id", async (req, res) => {
+    await connectDB();
     const { id } = req.params;
 
     // check id format or id in correct formate
