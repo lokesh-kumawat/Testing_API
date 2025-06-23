@@ -40,25 +40,25 @@ app.post("/api/user", async (req, res) => {
 
 // get user data
 app.get("/api/user/:id", async (req, res) => {
+    const { id } = req.params;
+
+    // check id format or id in correct formate
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Invalid user id formate" });
+    }
+
     try {
-        const { id } = req.params;
-
-        // check id format or id in correct formate
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ error: "Invalid user id formate" });
-        }
-
         const user = await User.findById(id);
-
         if (!user) {
-            res.status(404).json({ message: "user not found" });
+            return res.status(404).json({ message: "user not found" });
         }
 
-        res.status(200).json(user);
+        return res.status(200).json(user);
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: err.message });
     }
+
 });
 
 
