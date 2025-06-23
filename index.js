@@ -12,7 +12,11 @@ app.use(cors())
 
 async function main() {
     // await mongoose.connect('mongodb://127.0.0.1:27017/New_API');
-    await mongoose.connect(process.env.DATABASE_URL);
+    await mongoose.connect(process.env.DATABASE_URL, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
 }
 
 main().then(() => console.log("connected to the database"))
