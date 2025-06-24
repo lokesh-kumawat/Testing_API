@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors"
 import mongoose from 'mongoose';
 import { User } from './module/user.js';
-import {connectDB} from './DB.js';
+import { connectDB } from './DB.js';
 
 const app = express();
 
@@ -12,12 +12,21 @@ app.use(express.json());
 app.use(cors());
 
 
+// connected to DB
+await connectDB();
+
 // to add user data
 app.post("/api/user", async (req, res) => {
-    await connectDB()
     try {
         const { name, email, password } = req.body;
 
+        // check for existing user
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: "user is already exits" });
+        }
+
+        // save data in DB
         const newUser = new User({
             name: name,
             email: email,
@@ -25,15 +34,15 @@ app.post("/api/user", async (req, res) => {
         });
         await newUser.save();
 
-        res.status(201).json({ message: "user created successfully", user: newUser })
+        return res.status(200).json({ message: "user created successfully", user: newUser });
     } catch (err) {
-        res.status(500).json({ error: err.message })
+        res.status(500).json({ error: err.message });
     }
+
 });
 
 // get user data
 app.get("/api/user/:id", async (req, res) => {
-    await connectDB();
     const { id } = req.params;
 
     // check id format or id in correct formate
@@ -58,6 +67,7 @@ app.get("/api/user/:id", async (req, res) => {
 
 // Export handler for Vercel
 export default app;
+
 
 // server listen
 // let port = process.env.PORT
