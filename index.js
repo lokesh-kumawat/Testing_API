@@ -2,23 +2,68 @@ import 'dotenv/config'
 
 import express from "express";
 import cors from "cors"
+import bcrypt from 'bcrypt'
 import mongoose from 'mongoose';
+import MongoStore from 'connect-mongo';
+import session from 'express-session';
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
 import { User } from './module/user.js';
 import { connectDB } from './DB.js';
 
+
 const app = express();
-
-app.use(express.json());
-app.use(cors());
-
 
 // connected to DB
 await connectDB();
 
-// to add user data
-app.post("/api/user", async (req, res) => {
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+
+
+// mongoDb session store
+const store = MongoStore.create({
+    mongoUrl: process.env.DATABASE_URL,
+    crypto: {
+        secret: process.env.SECRET
+    },
+    touchAfter: 24 * 3600
+});
+
+store.on('error', (err) => {
+    console.log('Error in MONGO SESSION STORE', err);
+});
+
+
+// express-session
+app.use(session({
+    store: store,
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    }
+}));
+
+// initialize passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// passport local strategy
+passport.use(new LocalStrategy({ usernameField: "email"}, User.authenticate()));
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+
+// register user router
+app.post("/api/register", async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { username, email, password } = req.body;
 
         // check for existing user
         const existingUser = await User.findOne({ email });
@@ -26,20 +71,24 @@ app.post("/api/user", async (req, res) => {
             return res.status(400).json({ error: "user is already exits" });
         }
 
-        // save data in DB
-        const newUser = new User({
-            name: name,
-            email: email,
-            password: password
-        });
-        await newUser.save();
+        const user = new User({ username, email });
+        // handle password hasing
+        const registeredUser = await User.register(user, password)
 
-        return res.status(200).json({ message: "user created successfully", user: newUser });
+        return res.status(200).json({ message: "user created successfully", user: registeredUser });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 
 });
+
+
+// login router
+app.get("/login", (req, res) => {
+   res.send("aoids")
+})
+
 
 // get user data
 app.get("/api/user/:id", async (req, res) => {
@@ -65,12 +114,22 @@ app.get("/api/user/:id", async (req, res) => {
 });
 
 
+// login router 
+  app.post("/api/login",
+    passport.authenticate('local', {
+        failureMessage: "invalid credentials"
+     }),  
+     (req, res) => {
+       res.json({message: "Loggend In", user: req.user });    
+  });
+
+
 // Export handler for Vercel
-export default app;
+// export default app;
 
 
 // server listen
-// let port = process.env.PORT
-// app.listen(port, () => {
-//     console.log(`server is running on localhost ${port}`);
-// });
+let port = process.env.PORT
+app.listen(port, () => {
+    console.log(`server is running on localhost ${port}`);
+});
