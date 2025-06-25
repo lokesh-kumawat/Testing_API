@@ -125,11 +125,11 @@ app.get("/api/user/:id", async (req, res) => {
 
 
 // Export handler for Vercel
-// export default app;
+export default app;
 
 
 // server listen
-let port = process.env.PORT
-app.listen(port, () => {
-    console.log(`server is running on localhost ${port}`);
-});
+// let port = process.env.PORT
+// app.listen(port, () => {
+//     console.log(`server is running on localhost ${port}`);
+// });
