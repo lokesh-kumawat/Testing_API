@@ -1,18 +1,18 @@
 import 'dotenv/config'
 import express from "express";
 import cors from "cors";
-import fs  from "fs";
+import fs from "fs";
 import mongoose from 'mongoose';
 import MongoStore from 'connect-mongo';
-import multer from 'multer'
 import passport from 'passport';
 import session from 'express-session';
 import { Strategy as LocalStrategy } from 'passport-local';
 
 
-import { User } from './module/user.js';
+import { User } from './models/user.js';
 import { cloudinary } from './utils/cloudinary.js';
 import { connectDB } from './DB.js'
+import { upload } from "./middleware/multer.middleware.js"
 
 const app = express();
 
@@ -61,22 +61,6 @@ passport.use(new LocalStrategy({ usernameField: "email" }, User.authenticate()))
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-// Ensure uploads directory exists
-const uploadFile = "/tmp/uploads";
-if(!fs.existsSync(uploadFile)) {
-    fs.mkdirSync(uploadFile, {recursive: true});
-}
-
-// multer disk storage
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadFile);
-    },
-    filename: (req, file, cb) => {
-        cb(null, file.originalname);
-    },
-});
-const upload = multer({storage})
 
 
 app.get("/log", (req, res) => {
@@ -117,9 +101,21 @@ app.post("/api/login",
     });
 
 // logout user 
-// app.post("/logout", (req, res) => {
+app.post("/logout", (req, res, next) => {
+    req.logout((err) => {
+        if (err) {
+            return next(err);
+        }
 
-// })
+        req.session.destroy((err) => {
+            if (err) {
+                next(err)
+            }
+            res.clearCookie("connect.sid");
+            return res.status(200).json({ message: "logged out successfully" });
+        });
+    });
+})
 
 // get user data
 app.get("/api/user/:id", async (req, res) => {
@@ -147,29 +143,30 @@ app.get("/api/user/:id", async (req, res) => {
 
 // upload photos and videos 
 app.post("/upload", upload.single("file"), async (req, res) => {
-    
-    if(!req.file) return res.status(400).json({error: 'No file provided'});
+
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
     console.log(req.file);
     const localFilePath = req.file.path;
 
     try {
-      const result = await cloudinary.uploader.upload(localFilePath, {
-        resource_type: "auto",
-      });
+        const result = await cloudinary.uploader.upload(localFilePath, {
+            resource_type: "auto",
+            folder: "Api_data"
+        });
 
 
         // delete local file after successful upload on cloud
-         fs.unlinkSync(localFilePath); 
+        fs.unlinkSync(localFilePath);
 
-        return res.status(200).json({ 
-            message: "file uploaded successfully",  
+        return res.status(200).json({
+            message: "file uploaded successfully",
             url: result.secure_url,
         });
- 
+
     } catch (err) {
         fs.unlinkSync(localFilePath);
-        res.status(500).json({error: err.message || "file upload failed"});
+        res.status(500).json({ error: err.message || "file upload failed" });
     }
 
 })
