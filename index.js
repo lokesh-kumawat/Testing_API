@@ -169,7 +169,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
  
     } catch (err) {
         fs.unlinkSync(localFilePath);
-        res.status(500).json({error: err || "file upload failed"});
+        res.status(500).json({error: err.message || "file upload failed"});
     }
 
 })
