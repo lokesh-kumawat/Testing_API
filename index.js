@@ -62,7 +62,7 @@ passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 // Ensure uploads directory exists
-const uploadFile = "./public/uploads";
+const uploadFile = "/tmp/uploads";
 if(!fs.existsSync(uploadFile)) {
     fs.mkdirSync(uploadFile, {recursive: true});
 }
