@@ -22,7 +22,11 @@ await connectDB();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+  origin: 'http://192.168.0.190:5500', // your front-end IP + port
+  credentials: true                    // allow cookies to be sent
+}));
 
 
 // mongoDb session store
@@ -34,11 +38,6 @@ const sessionStore = MongoStore.create({
     touchAfter: 24 * 3600
 });
 
-sessionStore.on('error', (err) => {
-    console.log('Error in MONGO SESSION STORE', err);
-});
-
-
 // express-session
 app.use(session({
     store: sessionStore,
@@ -47,7 +46,9 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
+        secure: true,
         maxAge: 7 * 24 * 60 * 60 * 1000
+        
     }
 }));
 
